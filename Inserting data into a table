@@ -1,0 +1,27 @@
+class InsertApp extends Main{
+
+    public void insert(String number, String pin) {
+
+        String sql = "INSERT INTO card (number, pin) VALUES(?,?)";
+
+        try (Connection conn = this.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, number);
+            pstmt.setString(2, pin);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private Connection connect() {
+
+        url = "jdbc:sqlite:" + fileName;
+        try {
+            conn = DriverManager.getConnection(url);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return conn;
+    }
+}
