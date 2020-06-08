@@ -1,0 +1,325 @@
+package banking;
+
+import java.sql.*;
+import java.util.*;
+
+public class Main {
+
+    static Scanner scanner = new Scanner(System.in);
+    static Random rand = new Random();
+
+    static String number = null;
+    static String pin = null;
+    static boolean exit = false;
+
+    static int balance = 0;
+
+    static String fileName = null;
+    static String url = null;
+    static Connection conn = null;
+    static Statement stmt = null;
+
+    static Map<String, String> cardPin = new LinkedHashMap<>();
+
+    public static void main(String[] args) {
+
+        if (args[0].equals("-fileName")) {
+            fileName = args[1];
+        }
+
+        action();
+
+    }
+
+    public static void saveDatabase() {
+
+        createNewDatabase(fileName);
+
+        createNewTable();
+
+        InsertApp app = new InsertApp();
+
+        for (String z : cardPin.keySet()) {
+            app.insert(z, cardPin.get(z));
+        }
+    }
+
+    public static void createNewDatabase(String fileName) {
+
+        try { //Create a New SQLite Database
+            url = "jdbc:sqlite:" + fileName;
+
+            conn = DriverManager.getConnection(url);
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void createNewTable() {
+
+        try { //Create a New Table
+
+            url = "jdbc:sqlite:" + fileName;
+
+            String sql = "CREATE TABLE IF NOT EXISTS card ("
+                    + "\nid      INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + "\nnumber  TEXT,"
+                    + "\npin     TEXT,"
+                    + "\nbalance INTEGER DEFAULT 0 "
+                    + "\n);";
+
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    protected static void action() {
+
+        System.out.println("1. Create an account");
+        System.out.println("2. Log into account");
+        System.out.println("0. Exit");
+
+        int action = Integer.parseInt(scanner.nextLine());
+
+        while (!exit) {
+            switch (action) {
+                case 1:
+                    createAccount();
+                    break;
+                case 2:
+                    logIn();
+                    break;
+                case 0:
+                    System.out.println("Bye!");
+                    saveDatabase();
+                    exit = true;
+                    System.exit(0);
+                    break;
+
+            }
+        }
+    }
+
+    public static void createAccount() {
+
+        System.out.println("\n" + "Your card has been created");
+
+        System.out.println("Your card number:");
+
+        StringBuilder sb = new StringBuilder();
+
+        int[] digit = generateCard();
+
+        for (int i : digit) {
+            sb.append(i);
+
+        }
+
+        number = sb.toString();
+
+        System.out.println(number);
+
+        System.out.println("Your card PIN:");
+
+        StringBuilder pinSb = new StringBuilder();
+        pinSb.append(6);
+
+        for (int i = 0; i < 3; i++) {
+            pinSb.append(rand.nextInt(9));
+        }
+
+        pin = pinSb.toString();
+
+        System.out.println(pin + "\n");
+
+        cardPin.putIfAbsent(number, pin);
+
+        action();
+
+    }
+
+    public static boolean checkCard(int[] digits) {
+        int sum = 0;
+        int length = digits.length;
+
+        for (int i = 0; i < length; i++) {
+
+            int digit = digits[length - i - 1];
+
+            if (i % 2 == 1) {
+                digit *= 2;
+            }
+            sum += digit > 9 ? digit - 9 : digit;
+        }
+        return sum % 10 != 0;
+    }
+
+    public static int[] generateCard() {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("400000");
+
+        for (int i = 0; i < 10; i++) {
+            sb.append(rand.nextInt(9));
+        }
+
+        String[] ch = sb.toString().split("");
+
+        int[] digits = new int[ch.length];
+
+        for (int i = 0; i < digits.length; i++) {
+            digits[i] = Integer.parseInt(ch[i]);
+        }
+
+        if (checkCard(digits)) {
+            return generateCard();
+        }
+        return digits;
+    }
+
+    public static void logIn() {
+
+        System.out.println("\n" + "Enter your card number:");
+
+        number = scanner.nextLine().trim();
+
+        System.out.println("Enter your PIN:");
+
+        pin = scanner.nextLine();
+
+        if (cardPin.containsKey(number) && cardPin.get(number).equals(pin)) {
+
+            System.out.println("\n" + "You have successfully logged in!" + "\n");
+            viewAccount();
+
+        } else {
+
+            System.out.println("\n" + "Wrong card number or PIN!");
+        }
+        action();
+    }
+
+    public static void viewAccount() {
+
+        System.out.println("1. Balance");
+        System.out.println("2. Add income");
+        System.out.println("3. Do transfer");
+        System.out.println("4. Close account");
+        System.out.println("5. Log out");
+        System.out.println("0. Exit");
+
+        int act = 0;
+        try {
+            act = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("NumberFormatException");
+        }
+
+        boolean a = false;
+        while (!a) {
+            switch (act) {
+                case 1:
+                    System.out.printf("\nBalance: %d\n", balance);
+                    viewAccount();
+                    break;
+                case 2:
+                    addIncome();
+                    viewAccount();
+                    break;
+                case 3:
+                    doTransfer();
+                    viewAccount();
+                    break;
+                case 4:
+                    closeAccount();
+                    viewAccount();
+                    break;
+                case 5:
+                    a = true;
+                    System.out.println("You have successfully logged out!");
+                    System.out.println();
+                    action();
+                    break;
+                case 0:
+                    System.out.println("Bye!");
+                    saveDatabase();
+                    exit = true;
+                    System.exit(0);
+                    break;
+
+            }
+        }
+    }
+
+    public static void closeAccount() {
+
+        cardPin.remove(number);
+        System.out.println("The account has been closed!:");
+
+    }
+    public static void addIncome() {
+
+        System.out.println("Enter income:");
+
+        int income = 0;
+        try {
+            income = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("NumberFormatException");
+        }
+
+        balance += income;
+        System.out.println("Income was added!");
+    }
+
+    public static void doTransfer() {
+
+        System.out.println("Transfer");
+        System.out.println("Enter card number:");
+
+        String cardNumber = scanner.nextLine();
+
+        String[] literals = cardNumber.split("");
+
+        int[] numberToTransfer = new int[literals.length];
+
+        for (int i = 0; i < numberToTransfer.length; i++) {
+            numberToTransfer[i] = Integer.parseInt(literals[i]);
+        }
+
+        if (!cardPin.containsKey(cardNumber)) {
+            System.out.println("Such a card does not exist.");
+            viewAccount();
+        } else {
+            if (cardNumber.equals(number)) {
+                System.out.println("You can't transfer money to the same account!");
+                viewAccount();
+            } else {
+                if (checkCard(numberToTransfer)) {
+                    System.out.println("Probably you made mistake in card number. " +
+                            "Please try again!");
+                    viewAccount();
+                } else {
+
+                    System.out.println("Enter how much money you want to transfer:");
+                    int toTransfer = Integer.parseInt(scanner.nextLine());
+
+                    if (toTransfer > balance) {
+                        System.out.println("Not enough money!");
+                        viewAccount();
+                    } else {
+                        balance -= toTransfer;
+                        System.out.println("Success!");
+                    }
+                }
+            }
+        }
+    }
+}
+
+
