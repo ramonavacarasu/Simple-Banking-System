@@ -1,2 +1,2 @@
 # hiperskill__Simple-Banking-System
-SQL and database management!!
+SQLite and database management!!
